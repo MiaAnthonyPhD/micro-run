@@ -15,7 +15,7 @@ function init()
 	config.TryBindKey("F12", "command:makeup", true)
 
 	config.MakeCommand("makeupbg", makeupbgCommand, config.NoComplete)
-	config.TryBindKey("F9", "command:makeupbg", true)	
+	config.TryBindKey("F9", "command:makeupbg", true)
 end
 
 -- ### F5 runit ###
@@ -25,6 +25,15 @@ function runitCommand(bp) -- bp BufPane
 	-- choose run command according to filetype detected by micro
 	bp:Save()
 
+	-- check if a custom run script is in the current directory
+	local script_name = "./run.sh"
+	local script = io.open(script_name)
+	if script then
+		shell.RunInteractiveShell("clear", false, false)
+		shell.RunInteractiveShell(script_name, true, false)
+		return
+	end
+
 	local filename = bp.Buf.GetName(bp.Buf)
 	local filetype = bp.Buf:FileType()
 
@@ -33,15 +42,15 @@ function runitCommand(bp) -- bp BufPane
 		-- c compilation only supported on Linux-like systems
 		shell.RunInteractiveShell("clear", false, false)
 
-		-- we must create the temporary file here 
-		-- so that local attacker can't create a hostile one beforehand		
+		-- we must create the temporary file here
+		-- so that local attacker can't create a hostile one beforehand
 		-- RunInteractiveShell(input string, wait bool, getOutput bool) (string, error)
 		cmd = string.format("mktemp '/tmp/micro-run-binary-XXXXXXXXXXX'", filename)
 		tmpfile, err = shell.RunInteractiveShell(cmd, false, true)
 		-- TODO: error handling
 
 		shell.RunInteractiveShell("echo", false, false)
-		
+
 		-- compile to temporary file with unique(ish) tmp file name
 		cmd = string.format("gcc '%s' -o '%s'", filename, tmpfile)
 		shell.RunInteractiveShell(cmd, false, false)
@@ -61,15 +70,15 @@ function runitCommand(bp) -- bp BufPane
 		-- Rust rs is handled like C.
 		shell.RunInteractiveShell("clear", false, false)
 
-		-- we must create the temporary file here 
-		-- so that local attacker can't create a hostile one beforehand		
+		-- we must create the temporary file here
+		-- so that local attacker can't create a hostile one beforehand
 		-- RunInteractiveShell(input string, wait bool, getOutput bool) (string, error)
 		cmd = string.format("mktemp '/tmp/micro-run-binary-XXXXXXXXXXX'", filename)
 		tmpfile, err = shell.RunInteractiveShell(cmd, false, true)
 		-- TODO: error handling
 
 		shell.RunInteractiveShell("echo", false, false)
-		
+
 		-- compile to temporary file with unique(ish) tmp file name
 		cmd = string.format("rustc '%s' -o '%s'", filename, tmpfile)
 		shell.RunInteractiveShell(cmd, false, false)
@@ -84,7 +93,6 @@ function runitCommand(bp) -- bp BufPane
 
 		return -- early exit
 	end
-
 
 	local cmd = string.format("./%s", filename) -- does not support spaces in filename
 	if filetype == "go" then
@@ -104,7 +112,7 @@ function runitCommand(bp) -- bp BufPane
 	end
 
 	shell.RunInteractiveShell("clear", false, false)
-	shell.RunInteractiveShell(cmd, true, false)		
+	shell.RunInteractiveShell(cmd, true, false)
 end
 
 -- ### F12 makeup ###
@@ -120,7 +128,7 @@ end
 function makeupbgCommand(bp)
 	-- run make in this or higher directory, in the background, hide most output
 	bp:Save()
-	makeupWrapper(true)	
+	makeupWrapper(true)
 end
 
 function makeJobExit(out, args)
@@ -159,16 +167,16 @@ function makeupWrapper(bg)
 end
 
 function makeup(bg)
-	-- Go up directories until a Makefile is found and run 'make'. 
-	-- 'bg' means run in background, hiding most 'make' output. 
-	
+	-- Go up directories until a Makefile is found and run 'make'.
+	-- 'bg' means run in background, hiding most 'make' output.
+
 	-- Caller is responsible for returning to original working directory.
-	-- Important, because micro will save the current file into the directory where 
-	-- we are in. In this plugin, makeupWrapper() implements returning 
-	-- to original directory. 
+	-- Important, because micro will save the current file into the directory where
+	-- we are in. In this plugin, makeupWrapper() implements returning
+	-- to original directory.
 
 	local err, pwd, prevdir
-	for i = 1,20 do -- arbitrary number to make sure we exit one day
+	for i = 1, 20 do -- arbitrary number to make sure we exit one day
 		-- pwd
 		pwd, err = os.Getwd()
 		if err ~= nil then
@@ -192,7 +200,7 @@ function makeup(bg)
 			if bg then
 				micro.InfoBar():Message("Background running make, found Makefile in ", pwd)
 				-- JobStart runs shell in other than working directory, so we must cd
-				shell.JobStart("cd "..pwd.."; make", nil, nil, makeJobExit, nil)
+				shell.JobStart("cd " .. pwd .. "; make", nil, nil, makeJobExit, nil)
 			else
 				micro.InfoBar():Message("Running make, found Makefile in ", pwd)
 				-- RunInteractiveShell() uses the current working directory
@@ -208,10 +216,7 @@ function makeup(bg)
 			micro.InfoBar():Message("Error: os.Chdir() failed!")
 			return
 		end
-		
 	end
 	micro.InfoBar():Message("Warning: ran full 20 rounds but did not recognize root directory")
 	return
-
-end	
-
+end
